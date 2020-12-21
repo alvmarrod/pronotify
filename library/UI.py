@@ -7,12 +7,17 @@ import platform
 
 from urllib.parse import urlparse
 from datetime import datetime as dt
+
+import library.database as db
 import library.processes as processes
 
 if "pronotify" in __name__:
     import pronotify.main as main
 else:
     import main as main
+
+DB_NAME = "pronotify"
+POLL_SECONDS = 30
 
 PLATFORM = platform.system().lower()
 CLEAN_CMD = "cls" if "win" in PLATFORM else "clear"
@@ -129,9 +134,11 @@ def _ask_back_to_menu() -> bool:
 
     return result
 
-def _menu_generation() -> bool:
+def _menu_generation(db_conn) -> bool:
     """Generates the menu options. If returns false means the
-    menu should be finished
+    menu should be finished.
+
+    Receives the database connection as parameter.
     """
 
     show_again = False
@@ -183,7 +190,7 @@ def _menu_generation() -> bool:
         show_again = True
 
         if options[option]["function"]:
-            options[option]["function"]()
+            options[option]["function"](db_conn)
         else:
             raise ValueError(f"Option {option} is not available!")
 
@@ -198,7 +205,19 @@ def _menu_generation() -> bool:
 
 #######################################################################
 
-def add_product():
+def load_product(product):
+    """
+    """
+
+    # 0 is ID, then URL then GROUP
+    product_url = product[1]
+    product_group = product[2]
+    if not processes.ProductLibrary.add_product(product_url, product_group):
+        logging.warning(f"Failed to load product {product} into memory...")
+
+#######################################################################
+
+def add_product(db_conn):
     """
     """
 
@@ -208,11 +227,17 @@ def add_product():
     product_group = _ask_str_user("Specify a group if desired", "")
     logging.debug(f"Product Group: {product_group}")
 
-    processes.ProductLibrary.add_product(product_url, product_group)
+    if not processes.ProductLibrary.add_product(product_url, product_group):
+        logging.warning(f"Product not saved in memory!")
+    elif not db.insert_product(db_conn, (product_url, product_group)):
+        logging.warning(f"Product not saved in DB!")
+    else:
+        print(f"Product added successfully :)")
+
 
 #######################################################################
 
-def del_product():
+def del_product(db_conn):
     """
     """
 
@@ -222,12 +247,20 @@ def del_product():
     product_group = _ask_str_user("Specify a group where it belongs", "")
     logging.debug(f"Product Group: {product_group}")
 
-    processes.ProductLibrary.del_product(product_url, product_group)
+    if not processes.ProductLibrary.del_product(product_url, product_group):
+        logging.warning(f"Product not found in memory!")
+    elif not db.remove_product(db_conn, (product_url, product_group)):
+        logging.warning(f"Product was not found in DB!")
+    else:
+        print(f"Product removed successfully :)")
 
 #######################################################################
 
-def check_products():
+def check_products(db_conn):
     """
+
+    db_conn parameters is not used, but is defined to avoid more complex
+    parameters management in main function menu.
     """
 
     check = True
@@ -257,7 +290,6 @@ def check_products():
                     print(f"Vendor: {vendor}")
                     print(f"URL: {product}")
                     
-                    print(f"Availability source: {availability}")
                     if availability:
                         availability = ":white_check_mark:"
                     else:
@@ -267,10 +299,10 @@ def check_products():
 
                 print("")
 
-                print(f"++ Control ++")
-                print(f"Please, hit Ctrl+C in case you want to stop monitoring...")
+            print(f"++ Control ++")
+            print(f"Please, hit Ctrl+C in case you want to stop monitoring...")
             
-            time.sleep(10)
+            time.sleep(POLL_SECONDS)
         
         except KeyboardInterrupt:
             check = False
@@ -281,7 +313,20 @@ def menu():
     """Generates and controls the menu for the app.
     """
 
-    generate = _menu_generation()
+    db_conn = db.open_database(DB_NAME)
+    
+    # Database setup
+    print(f"1. Checking and creating products table in DB...")
+    db._create_products_table(db_conn)
+    print(f"2. Loading database into memory...")
+    products = db.read_products(db_conn)
+    for item in products:
+        load_product(item)
+
+    # Menu
+    generate = _menu_generation(db_conn)
 
     while generate:
-        generate = _menu_generation()
+        generate = _menu_generation(db_conn)
+
+    db.close_database(db_conn)

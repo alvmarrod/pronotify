@@ -42,10 +42,14 @@ class ProductLibrary:
     products = {}
 
     @staticmethod
-    def add_product(url, group):
+    def add_product(url, group) -> bool:
         """
-        docstring
+        
+        Returns:
+        - A `bool` indicating if the insertion was accomplished (true)
         """
+
+        result = True
 
         if group == "":
             group = "default"
@@ -57,11 +61,17 @@ class ProductLibrary:
                 f"{url}": False
             }
 
+        return result
+
     @staticmethod
-    def del_product(url, group):
+    def del_product(url, group) -> bool:
         """
-        docstring
+        
+        Returns:
+        - A `bool` indicating if the removal was accomplished (true)
         """
+
+        result = True
 
         if group == "":
             group = "default"
@@ -70,9 +80,13 @@ class ProductLibrary:
             if url in ProductLibrary.products[group]:
                 del ProductLibrary.products[group][url]
             else:
-                logging.warning(f"URL doesn't exist in this group!")    
+                logging.warning(f"URL doesn't exist in this group!")
+                result = False
         else:
             logging.warning(f"Group {group} doesn't exist!")
+            result = False
+
+        return result
 
     @staticmethod
     def check_products():

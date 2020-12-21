@@ -18,7 +18,7 @@ def _create_products_table(con):
         con.execute('''CREATE TABLE products
             (ID INTEGER PRIMARY KEY,
             URL            TEXT    NOT NULL,
-            GROUP          TEXT    NOT NULL,
+            PRODUCT_GROUP  TEXT    NOT NULL,
             TIMESTAMP      DATETIME DEFAULT CURRENT_TIMESTAMP);''')
 
         logging.info("Table products created!")
@@ -113,8 +113,31 @@ def insert_product(con, data_tuple) -> bool:
         logging.warning(f"product data was not length 2 but {len(data_tuple)}")
     else:
         query = "INSERT INTO products(" + \
-                "URL, GROUP) VALUES " + \
+                "URL, PRODUCT_GROUP) VALUES " + \
                 "(\"" + '","'.join(str(i) for i in data_tuple) + "\")"
+        result = (1 == _execute_non_reader_query(con, query))
+
+    return result
+
+def remove_product(con, data_tuple) -> bool:
+    """Removes the given data tuple into the products table.
+
+    Parameters:
+    - A `tuple` with 2 elements to be removed from the table.
+
+    Returns:
+    - A `bool` indicating if the removal was accomplished (true)
+    """
+
+    result = True
+
+    if len(data_tuple) != 2:
+        result = False
+        logging.warning(f"product data was not length 2 but {len(data_tuple)}")
+    else:
+        query = "DELETE FROM products WHERE " + \
+                f"URL = \"{data_tuple[0]}\" " + \
+                f"AND PRODUCT_GROUP = \"{data_tuple[1]}\""
         result = (1 == _execute_non_reader_query(con, query))
 
     return result
@@ -123,9 +146,9 @@ def read_products_by_group(con, group) -> tuple:
     """Queries the products table by group.
     """
 
-    query = "SELECT ID, URL, GROUP " + \
+    query = "SELECT ID, URL, PRODUCT_GROUP " + \
             " FROM products" + \
-            f" WHERE GROUP=\"{group}\""
+            f" WHERE PRODUCT_GROUP=\"{group}\""
 
     result = None
 
@@ -142,7 +165,7 @@ def read_products_by_vendor(con, vendor) -> tuple:
     """Queries the products table by vendor, that should be present in the URL.
     """
 
-    query = "SELECT ID, URL, GROUP " + \
+    query = "SELECT ID, URL, PRODUCT_GROUP " + \
             " FROM products" + \
             f" WHERE LOCATE({vendor.lower()}, URL) > 0"
 
@@ -162,7 +185,7 @@ def read_products(con) -> tuple:
     ordered by insertion time.
     """
 
-    query = "SELECT ID, URL, GROUP " + \
+    query = "SELECT ID, URL, PRODUCT_GROUP " + \
             " FROM products"
 
     result = None
