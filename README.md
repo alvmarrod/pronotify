@@ -32,3 +32,9 @@ Remember that a new commit does not imply a new version.
 - [requests](https://pypi.org/project/requests/)
 - [bs4](https://pypi.org/project/bs4/)
 - [emoji](https://pypi.org/project/emoji/)
+
+To install all these requirements, you can execute:
+
+```
+python -m pip install -r requirements.txt
+```
