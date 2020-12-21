@@ -24,17 +24,14 @@ def _check_coolmod_product(url) -> bool:
     availability = soup.find_all("span", 
                     {"class": "product-availability"}, limit=1)[0]
     
-    if availability.div:
-        availability = availability.div.contents[0].string
-    else:
-        availability = availability.string
+    for item in availability.strings:
 
-    if "reserva" not in availability.lower():
-        pass
-    elif "sin stock" not in availability.lower():
-        pass
-    elif "envío inmediato" in availability.lower():
-        result = True
+        if "reserva" in item.lower():
+            result = False
+        elif "sin stock" in item.lower():
+            result = False
+        elif "envío inmediato" in item.lower():
+            result = True
 
     return result
 
