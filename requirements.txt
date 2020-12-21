@@ -1,5 +1,4 @@
 emoji
-urllib
 argparse
 requests
 BeautifulSoup4
