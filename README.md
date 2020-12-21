@@ -21,6 +21,11 @@ $ python main.py
 Choose an option:
 ```
 
+## Supported vendors
+
+- [Coolmod](http://coolmod.com/) - Spanish language
+- ...
+
 ## Versions
 
 Current version tag is available in [version.txt](./version.txt) file, and you can refer to the [changelog](./changelog.md) file for more information on each version number.
