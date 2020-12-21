@@ -4,28 +4,24 @@ import sqlite3
 
 #######################################################################
 
-def _create_all_movements_table(con):
-    """Creates the table for consolidated data. This function is
-    idempotent, so it will not overwrite an existing config file.
+def _create_products_table(con):
+    """Creates the table for consolidated data.
     """
 
     tb_exists = "SELECT name FROM sqlite_master WHERE type='table' " + \
-                "AND name='all_movements'"
+                "AND name='products'"
 
     if not con.execute(tb_exists).fetchone():
 
-        logging.info("Table all_movements not detected!")
+        logging.info("Table products not detected!")
 
-        con.execute('''CREATE TABLE all_movements
+        con.execute('''CREATE TABLE products
             (ID INTEGER PRIMARY KEY,
-            OP_DATE        TEXT    NOT NULL,
-            VAL_DATE       TEXT    NOT NULL,
-            CONCEPT        TEXT    NULL,
-            AMOUNT         REAL,
-            BALANCE        REAL,
+            URL            TEXT    NOT NULL,
+            GROUP          TEXT    NOT NULL,
             TIMESTAMP      DATETIME DEFAULT CURRENT_TIMESTAMP);''')
 
-        logging.info("Table all_movements created!")
+        logging.info("Table products created!")
 
 #######################################################################
 
@@ -90,7 +86,7 @@ def open_database(db_file) -> sqlite3.Connection:
 
     try:
         con = sqlite3.connect(filepath)
-        _create_all_movements_table(con)
+        _create_products_table(con)
 
     except Exception as e:
 
@@ -100,11 +96,11 @@ def open_database(db_file) -> sqlite3.Connection:
 
     return con
 
-def insert_movement(con, data_tuple) -> bool:
-    """Inserts the given data tuple into the all_movements table.
+def insert_product(con, data_tuple) -> bool:
+    """Inserts the given data tuple into the products table.
 
     Parameters:
-    - A `tuple` with 5 elements to be inserted into the table.
+    - A `tuple` with 2 elements to be inserted into the table.
 
     Returns:
     - A `bool` indicating if the insertion was accomplished (true)
@@ -112,25 +108,24 @@ def insert_movement(con, data_tuple) -> bool:
 
     result = True
 
-    if len(data_tuple) != 5:
+    if len(data_tuple) != 2:
         result = False
-        logging.warning(f"Movement data was not length 5 but {len(data_tuple)}")
+        logging.warning(f"product data was not length 2 but {len(data_tuple)}")
     else:
-        query = "INSERT INTO all_movements(" + \
-                "OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE) VALUES " + \
+        query = "INSERT INTO products(" + \
+                "URL, GROUP) VALUES " + \
                 "(\"" + '","'.join(str(i) for i in data_tuple) + "\")"
         result = (1 == _execute_non_reader_query(con, query))
 
     return result
 
-def read_movements_by_op_date(con, date) -> tuple:
-    """Queries the all_movements table by operation date and retrieves the 
-    movements, ordered by insertion time.
+def read_products_by_group(con, group) -> tuple:
+    """Queries the products table by group.
     """
 
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            " FROM all_movements" + \
-            f" WHERE OP_DATE=\"{date}\""
+    query = "SELECT ID, URL, GROUP " + \
+            " FROM products" + \
+            f" WHERE GROUP=\"{group}\""
 
     result = None
 
@@ -138,19 +133,18 @@ def read_movements_by_op_date(con, date) -> tuple:
         result = _execute_reader_query(con, query)
 
     except Exception as e:
-        logging.warning(f"Couldn't retrieve data for the given date: {date}")
+        logging.warning(f"Couldn't retrieve data for the given group: {group}")
         logging.info(e)
 
     return result
 
-def read_movements_by_val_date(con, date) -> tuple:
-    """Queries the all_movements table by value date and retrieves the
-    movements, ordered by insertion time.
+def read_products_by_vendor(con, vendor) -> tuple:
+    """Queries the products table by vendor, that should be present in the URL.
     """
 
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            " FROM all_movements" + \
-            f" WHERE VAL_DATE=\"{date}\""
+    query = "SELECT ID, URL, GROUP " + \
+            " FROM products" + \
+            f" WHERE LOCATE({vendor.lower()}, URL) > 0"
 
     result = None
 
@@ -158,126 +152,18 @@ def read_movements_by_val_date(con, date) -> tuple:
         result = _execute_reader_query(con, query)
 
     except Exception as e:
-        logging.warning(f"Couldn't retrieve data for the given date: {date}")
+        logging.warning(f"Couldn't get data for the given vendor: {vendor}")
         logging.info(e)
 
     return result
 
-def read_movements_by_amount(con, amount) -> tuple:
-    """Queries the all_movements table by transaction amount and returns
-    all the movements that match this amount.
-    """
-
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            " FROM all_movements" + \
-            f" WHERE AMOUNT={amount}"
-
-    result = None
-
-    try:
-        result = _execute_reader_query(con, query)
-
-    except Exception as e:
-        logging.warning(f"Couldn't get data for the given amount: {amount}")
-        logging.info(e)
-
-    return result
-
-def read_movements_by_amount_range(con, min, max) -> tuple:
-    """Queries the all_movements table by transaction amount and returns
-    all the movements that match this amount.
-
-    The function is capable of switching boundaries if mistaken.
-
-    Parameters:
-    - A `sqlite3.Connection` to the database
-    - A `double` with the lower threshold. None means no boundary.
-    - A `double` with the upper threshold. None means no boundary.
-
-    Returns:
-    - A `tuple` with the results
-    """
-
-    if min and max:
-        if min > max:
-            toggle = min
-            min = max
-            max = toggle
-
-    if min:
-        aux =  f" WHERE AMOUNT >= {min}"
-
-    if max:
-        if len(aux) > 0:
-            aux += f" AND AMOUNT <= {max}"
-        else:
-            aux = f" WHERE AMOUNT <= {max}"
-
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            f" FROM all_movements {aux}"
-
-    result = None
-
-    try:
-        result = _execute_reader_query(con, query)
-
-    except Exception as e:
-        logging.warning(f"Couldn't get data for the given range: {min}, {max}")
-        logging.info(e)
-
-    return result
-
-def read_movements_by_balance_range(con, min, max) -> tuple:
-    """Queries the all_movements table by balance amount and returns
-    all the movements that match this range.
-
-    The function is capable of switching boundaries if mistaken.
-
-    Parameters:
-    - A `sqlite3.Connection` to the database
-    - A `double` with the lower threshold. None means no boundary.
-    - A `double` with the upper threshold. None means no boundary.
-
-    Returns:
-    - A `tuple` with the results
-    """
-
-    if min and max:
-        if min > max:
-            toggle = min
-            min = max
-            max = toggle
-
-    if min:
-        aux =  f" WHERE BALANCE >= {min}"
-
-    if max:
-        if len(aux) > 0:
-            aux += f" AND BALANCE <= {max}"
-        else:
-            aux = f" WHERE BALANCE <= {max}"
-
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            f" FROM all_movements {aux}"
-
-    result = None
-
-    try:
-        result = _execute_reader_query(con, query)
-
-    except Exception as e:
-        logging.warning(f"Couldn't get data for the given range: {min}, {max}")
-        logging.info(e)
-
-    return result
-
-def read_movements(con) -> tuple:
-    """Queries the all_movements table and retrieves the movements,
+def read_products(con) -> tuple:
+    """Queries the products table and retrieves the products,
     ordered by insertion time.
     """
 
-    query = "SELECT ID, OP_DATE, VAL_DATE, CONCEPT, AMOUNT, BALANCE" + \
-            " FROM all_movements"
+    query = "SELECT ID, URL, GROUP " + \
+            " FROM products"
 
     result = None
 
@@ -285,7 +171,7 @@ def read_movements(con) -> tuple:
         result = _execute_reader_query(con, query)
 
     except Exception as e:
-        logging.warning(f"Couldn't retrieve data for all_movements table")
+        logging.warning(f"Couldn't retrieve data for products table")
         logging.info(e)
 
     return result
