@@ -230,39 +230,50 @@ def check_products():
     """
     """
 
-    while True:
+    check = True
 
-        # Update data
-        processes.ProductLibrary.check_products()
+    while check:
 
-        print(f"+++++ Update Time +++++")
-        print(f"{dt.now()}")
-        print("")
-        
-        # Print it
-        os.system(CLEAN_CMD)
-        for group in processes.ProductLibrary.products:
+        try:
 
-            print(f"+++ {group} +++")
+            # Update data
+            processes.ProductLibrary.check_products()
+
+            # Print it
+            os.system(CLEAN_CMD)
+            print(f"+++++ Update Time +++++")
+            print(f"{dt.now()}")
             print("")
+            
+            for group in processes.ProductLibrary.products:
 
-            for product in processes.ProductLibrary.products[group]:
+                print(f"+++ {group} +++")
+                print("")
 
-                vendor = urlparse(product).netloc
-                availability = processes.ProductLibrary.products[group][product]
-                print(f"Vendor: {vendor}")
-                print(f"URL: {product}")
-                
-                if availability:
-                    availability = ":white_check_mark:"
-                else:
-                    availability = ":x:"
-                print(emoji.emojize(f"Availability: {availability}",
-                        use_aliases=True))
+                for product in processes.ProductLibrary.products[group]:
 
-            print("")
+                    vendor = urlparse(product).netloc
+                    availability = processes.ProductLibrary.products[group][product]
+                    print(f"Vendor: {vendor}")
+                    print(f"URL: {product}")
+                    
+                    print(f"Availability source: {availability}")
+                    if availability:
+                        availability = ":white_check_mark:"
+                    else:
+                        availability = ":x:"
+                    print(emoji.emojize(f"Availability: {availability}",
+                            use_aliases=True))
+
+                print("")
+
+                print(f"++ Control ++")
+                print(f"Please, hit Ctrl+C in case you want to stop monitoring...")
+            
+            time.sleep(10)
         
-        time.sleep(10)
+        except KeyboardInterrupt:
+            check = False
 
 #######################################################################
 
