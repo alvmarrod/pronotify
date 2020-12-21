@@ -9,7 +9,7 @@ Execute the main script to access the app main menu and start working from there
 ```
 $ python main.py
 
-############### banksys ###############
+############## pronotify ##############
 ####                               ####
 # 1. Add product                      #
 # 2. Remove product                   #
@@ -29,4 +29,6 @@ Remember that a new commit does not imply a new version.
 
 ## Dependencies
 
-- [...](https://bing.com)
+- [requests](https://pypi.org/project/requests/)
+- [bs4](https://pypi.org/project/bs4/)
+- [emoji](https://pypi.org/project/emoji/)
