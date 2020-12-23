@@ -3,11 +3,10 @@ import logging
 import argparse
 
 import library.UI as UI
-#import library.database as DB
 
 #######################################################################
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.WARNING,
                     format='%(name)s - %(levelname)s - %(message)s')
 
 DEBUG=True

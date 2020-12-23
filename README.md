@@ -24,7 +24,7 @@ Choose an option:
 ## Supported vendors
 
 - [Coolmod](http://coolmod.com/) - Spanish language
-- ...
+- [PCComponentes](https://www.pccomponentes.com/) - All languages - Requires ChromeDriver!
 
 ## Versions
 
@@ -36,6 +36,7 @@ Remember that a new commit does not imply a new version.
 
 - [requests](https://pypi.org/project/requests/)
 - [bs4](https://pypi.org/project/bs4/)
+- [selenium](https://pypi.org/project/selenium/)
 - [emoji](https://pypi.org/project/emoji/)
 
 To install all these requirements, you can execute:
@@ -43,3 +44,12 @@ To install all these requirements, you can execute:
 ```
 python -m pip install -r requirements.txt
 ```
+
+### ChromeDriver
+
+Some webpages need to renderize further HTML Changes by JavaScript actions before scraping them. It puts us in the need of loading the webpages in the same way a browser would do it, so we actually need a web browser to work for us.
+
+Our choice is [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/getting-started), that should be installed beforehand in your computer.
+
+You should install the appropriate chromedriver from their [downloads section](https://sites.google.com/a/chromium.org/chromedriver/downloads).
+

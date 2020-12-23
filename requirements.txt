@@ -2,3 +2,4 @@ emoji
 argparse
 requests
 BeautifulSoup4
+selenium
