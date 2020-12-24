@@ -39,8 +39,10 @@ def _check_coolmod_product(url) -> bool:
 
     return result
 
-def _check_pccomp_product(url) -> bool:
+def _check_pccomp_product(url, chromium_path) -> bool:
     """
+    Sample `chromium_path`:
+    r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
     """
 
     result = False
@@ -49,13 +51,16 @@ def _check_pccomp_product(url) -> bool:
 
     # Prepare options for the chrome driver
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    #chrome_options.add_argument("--headless")
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument("--window-size=1920x1080")
 
     # Just in case of windows execution
     # https://bugs.chromium.org/p/chromium/issues/detail?id=737678
     chrome_options.add_argument('--disable-gpu')
+
+    if chromium_path:
+        chrome_options.binary_location = chromium_path
 
     # Supress chrome logs
     # https://stackoverflow.com/questions/47392423/python-selenium-devtools-listening-on-ws-127-0-0-1
@@ -142,7 +147,7 @@ class ProductLibrary:
         return result
 
     @staticmethod
-    def check_products():
+    def check_products(chromium_path):
         """
         docstring
         """
@@ -159,7 +164,7 @@ class ProductLibrary:
                 elif "pccomponentes" in product.lower():
 
                     ProductLibrary.products[group][product] = \
-                        _check_pccomp_product(product)
+                        _check_pccomp_product(product, chromium_path)
 
                 else:
 

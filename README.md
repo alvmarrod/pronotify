@@ -21,6 +21,14 @@ $ python main.py
 Choose an option:
 ```
 
+There are some vendors that require the usage of a web browser to renderize several items with JavaScript, e.g. *pccomponentes*. If you're not going to use them, you don't need to worry about the following point.
+
+By default, as web browser it will be used Chrome, but if you don't have Chrome web browser installed, you can target a different **Chromium web browser** to be used.
+
+```
+$ python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
+```
+
 ## Supported vendors
 
 - [Coolmod](http://coolmod.com/) - Spanish language

@@ -22,6 +22,8 @@ POLL_SECONDS = 30
 PLATFORM = platform.system().lower()
 CLEAN_CMD = "cls" if "win" in PLATFORM else "clear"
 
+CHROMIUM_PATH = None
+
 def _ask_bool_user(msg, default=False) -> bool:
     """Ask anything to the user and returns a boolean.
 
@@ -270,7 +272,7 @@ def check_products(db_conn):
         try:
 
             # Update data
-            processes.ProductLibrary.check_products()
+            processes.ProductLibrary.check_products(CHROMIUM_PATH)
 
             # Print it
             os.system(CLEAN_CMD)
