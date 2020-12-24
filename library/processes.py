@@ -16,42 +16,13 @@ else:
 
 #######################################################################
 
-def _check_coolmod_product(url) -> bool:
+def _get_web_through_chromedriver(url, chromium_path) -> BeautifulSoup:
     """
     """
-
-    result = False
-
-    response = requests.get(url)
-    soup = BeautifulSoup(response.text, "html.parser")
-
-    availability = soup.find_all("span", 
-                    {"class": "product-availability"}, limit=1)[0]
-    
-    for item in availability.strings:
-
-        if "reserva" in item.lower():
-            result = False
-        elif "sin stock" in item.lower():
-            result = False
-        elif "envío inmediato" in item.lower():
-            result = True
-
-    return result
-
-def _check_pccomp_product(url, chromium_path) -> bool:
-    """
-    Sample `chromium_path`:
-    r"C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
-    """
-
-    result = False
-
-    logging.info(f"PCComp article: {url}")
 
     # Prepare options for the chrome driver
     chrome_options = Options()
-    #chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument('--disable-extensions')
     chrome_options.add_argument("--window-size=1920x1080")
 
@@ -72,9 +43,59 @@ def _check_pccomp_product(url, chromium_path) -> bool:
         executable_path="./chromedriver/chromedriver.exe",
         chrome_options=chrome_options)
     driver.get(url)
-    time.sleep(5)
+    if "pccomponentes" in url.lower():
+        time.sleep(10)
+    else:
+        time.sleep(1)
     soup = BeautifulSoup(driver.page_source.encode("utf-8"), "html.parser")
     driver.quit()
+
+    return soup
+
+def _check_coolmod_product(url, chromium_path) -> (bool, float):
+    """
+    """
+
+    available = False
+    price = float(0)
+
+    # soup = _get_web_through_chromedriver(url, chromium_path)
+    response = requests.get(url)
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    availability = soup.find_all("span", 
+                    {"class": "product-availability"}, limit=1)[0]
+    
+    for item in availability.strings:
+
+        if "reserva" in item.lower():
+            available = False
+        elif "sin stock" in item.lower():
+            available = False
+        elif "envío inmediato" in item.lower():
+            available = True
+
+    main_price = soup.find_all("span",
+                    {"class": "text-price-total"}, limit=1)[0].string
+    sup_price = soup.find_all("span",
+                    {"class": "text-price-total-sup"}, 
+                    limit=1)[0].string.replace(",", "").replace("€", "")
+
+    price = float(main_price) + float(sup_price)/100
+
+    return (available, price)
+
+def _check_pccomp_product(url, chromium_path) -> (bool, float):
+    """
+    Sample `chromium_path`:
+    C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe
+    """
+
+    available = False
+    price = float(0)
+
+    logging.info(f"PCComp article: {url}")
+    soup = _get_web_through_chromedriver(url, chromium_path)
 
     artcl_is = soup.find_all("div",{"id": "articleInStock"}, limit=1)[0]
     artcl_is_style = artcl_is.get('style')
@@ -86,12 +107,24 @@ def _check_pccomp_product(url, chromium_path) -> bool:
     logging.info(f"PCComp, article OOS Complete: {artcl_oos}")
     
     if "display:none;" in artcl_oos_style:
-        result = True
+        available = True
 
     if "" == artcl_is_style:
-        result = True
+        available = True
 
-    return result
+    main_price = soup.find_all("span",
+                    {"class": "baseprice"}, limit=1)[0].string
+    sup_price = soup.find_all("span",
+                    {"class": "cents"})[0].string
+
+    if sup_price:
+        sup_price = sup_price.replace(",", "")
+    else:
+        sup_price = 0
+
+    price = float(main_price) + float(sup_price)/100
+
+    return (available, price)
 
 #######################################################################
 
@@ -159,7 +192,7 @@ class ProductLibrary:
                 if "coolmod" in product.lower():
 
                     ProductLibrary.products[group][product] = \
-                        _check_coolmod_product(product)
+                        _check_coolmod_product(product, chromium_path)
 
                 elif "pccomponentes" in product.lower():
 

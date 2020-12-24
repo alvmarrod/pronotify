@@ -288,16 +288,22 @@ def check_products(db_conn):
                 for product in processes.ProductLibrary.products[group]:
 
                     vendor = urlparse(product).netloc
-                    availability = processes.ProductLibrary.products[group][product]
-                    print(f"Vendor: {vendor}")
-                    print(f"URL: {product}")
+                    
+                    try:
+                        availability, price = \
+                            processes.ProductLibrary.products[group][product]
+                    except Exception as e:
+                        logging.warning(f"Error: {e}")
+                    
+                    print(f"Product URL: {product}")
                     
                     if availability:
                         availability = ":white_check_mark:"
                     else:
                         availability = ":x:"
-                    print(emoji.emojize(f"Availability: {availability}",
-                            use_aliases=True))
+                    print(emoji.emojize(
+                        f"Availability: {availability} - Price: {price}€",
+                        use_aliases=True))
 
                 print("")
 
