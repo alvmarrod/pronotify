@@ -287,7 +287,7 @@ def check_products(db_conn):
 
                 for product in processes.ProductLibrary.products[group]:
 
-                    vendor = urlparse(product).netloc
+                    # vendor = urlparse(product).netloc
                     
                     try:
                         availability, price = \
