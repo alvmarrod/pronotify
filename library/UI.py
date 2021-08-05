@@ -5,9 +5,10 @@ import emoji
 import logging
 import platform
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, uses_relative
 from datetime import datetime as dt
 
+from library.emojis import *
 import library.database as db
 import library.processes as processes
 
@@ -276,31 +277,38 @@ def check_products(db_conn):
 
             # Print it
             os.system(CLEAN_CMD)
-            print(f"+++++ Update Time +++++")
-            print(f"{dt.now()}")
+            print(emoji.emojize(
+                    f"{etime} Last Update {dt.now()} {etime}",
+                    use_aliases=True
+                )
+            )
             print("")
-            
+
             for group in processes.ProductLibrary.products:
 
-                print(f"+++ {group} +++")
+                print(emoji.emojize(
+                        f"{egroup} {group} {egroup}",
+                        use_aliases=True
+                    )
+                )
                 print("")
 
                 for product in processes.ProductLibrary.products[group]:
 
                     # vendor = urlparse(product).netloc
-                    
+
                     try:
                         availability, price = \
                             processes.ProductLibrary.products[group][product]
                     except Exception as e:
                         logging.warning(f"Error: {e}")
-                    
+
                     print(f"Product URL: {product}")
-                    
+
                     if availability:
-                        availability = ":white_check_mark:"
+                        availability = evalid
                     else:
-                        availability = ":x:"
+                        availability = ecross
                     print(emoji.emojize(
                         f"Availability: {availability} - Price: {price}€",
                         use_aliases=True))
@@ -309,9 +317,9 @@ def check_products(db_conn):
 
             print(f"++ Control ++")
             print(f"Please, hit Ctrl+C in case you want to stop monitoring...")
-            
+
             time.sleep(POLL_SECONDS)
-        
+
         except KeyboardInterrupt:
             check = False
 
@@ -322,7 +330,7 @@ def menu():
     """
 
     db_conn = db.open_database(DB_NAME)
-    
+
     # Database setup
     print(f"1. Checking and creating products table in DB...")
     db._create_products_table(db_conn)

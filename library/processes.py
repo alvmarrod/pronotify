@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-import os
 import time
 import logging
 import requests
-import urllib.request
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -94,17 +92,17 @@ def _check_pccomp_product(url, chromium_path) -> (bool, float):
     available = False
     price = float(0)
 
-    logging.info(f"PCComp article: {url}")
+    logging.debug(f"PCComp article: {url}")
     soup = _get_web_through_chromedriver(url, chromium_path)
 
     artcl_is = soup.find_all("div",{"id": "articleInStock"}, limit=1)[0]
     artcl_is_style = artcl_is.get('style')
-    logging.info(f"PCComp, article IS style: {artcl_is_style}")
+    logging.debug(f"PCComp, article IS style: {artcl_is_style}")
 
     artcl_oos = soup.find_all("div",{"id": "articleOutOfStock"}, limit=1)[0]
     artcl_oos_style = artcl_oos.get('style')
-    logging.info(f"PCComp, article OOS style: {artcl_oos_style}")
-    logging.info(f"PCComp, article OOS Complete: {artcl_oos}")
+    logging.debug(f"PCComp, article OOS style: {artcl_oos_style}")
+    logging.debug(f"PCComp, article OOS Complete: {artcl_oos}")
     
     if "display:none;" in artcl_oos_style:
         available = True
@@ -126,6 +124,27 @@ def _check_pccomp_product(url, chromium_path) -> (bool, float):
 
     return (available, price)
 
+def _check_neobyte_product(url, chromium_path) -> (bool, float):
+    """
+    Sample `chromium_path`:
+    C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe
+    """
+
+    available = False
+    price = float(0)
+
+    logging.info(f"NeoByte article: {url}")
+    soup = _get_web_through_chromedriver(url, chromium_path)
+
+    dom_available = soup.find_all("span",{"id": "availability_value"}, limit=1)[0]
+    available = "label-success" in dom_available.get('class')
+
+    dom_price = soup.find_all("span",
+                    {"id": "our_price_display"}, limit=1)[0].string
+    price = float(dom_price.replace(" €", "").replace(",", "."))
+
+    return (available, price)
+
 #######################################################################
 
 class ProductLibrary:
@@ -135,7 +154,6 @@ class ProductLibrary:
     @staticmethod
     def add_product(url, group) -> bool:
         """
-        
         Returns:
         - A `bool` indicating if the insertion was accomplished (true)
         """
@@ -144,7 +162,7 @@ class ProductLibrary:
 
         if group == "":
             group = "default"
-        
+
         if group in ProductLibrary.products:
             ProductLibrary.products[group][url] = False
         else:
@@ -157,7 +175,6 @@ class ProductLibrary:
     @staticmethod
     def del_product(url, group) -> bool:
         """
-        
         Returns:
         - A `bool` indicating if the removal was accomplished (true)
         """
@@ -166,7 +183,7 @@ class ProductLibrary:
 
         if group == "":
             group = "default"
-        
+
         if group in ProductLibrary.products:
             if url in ProductLibrary.products[group]:
                 del ProductLibrary.products[group][url]
@@ -184,10 +201,14 @@ class ProductLibrary:
         """
         docstring
         """
-        
+
         for group in ProductLibrary.products:
 
+            logging.info(f"Group {group}")
+
             for product in ProductLibrary.products[group]:
+
+                logging.info(f"Checking {product}")
 
                 if "coolmod" in product.lower():
 
@@ -198,6 +219,11 @@ class ProductLibrary:
 
                     ProductLibrary.products[group][product] = \
                         _check_pccomp_product(product, chromium_path)
+
+                elif "neobyte" in product.lower():
+
+                    ProductLibrary.products[group][product] = \
+                        _check_neobyte_product(product, chromium_path)
 
                 else:
 

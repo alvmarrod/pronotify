@@ -33,6 +33,7 @@ $ python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\
 
 - [Coolmod](http://coolmod.com/) - Spanish language
 - [PCComponentes](https://www.pccomponentes.com/) - All languages - Requires ChromeDriver!
+- [NeoByte](https://www.neobyte.es/) - Spanish (Unique available)
 
 ## Versions
 
