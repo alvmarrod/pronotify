@@ -25,8 +25,14 @@ There are some vendors that require the usage of a web browser to renderize seve
 
 By default, as web browser it will be used Chrome, but if you don't have Chrome web browser installed, you can target a different **Chromium web browser** to be used.
 
+- Windows
 ```
 $ python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
+```
+
+- Mac
+```
+$ python main.py --chromium "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 
 ## Supported vendors
@@ -40,6 +46,16 @@ $ python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\
 Current version tag is available in [version.txt](./version.txt) file, and you can refer to the [changelog](./changelog.md) file for more information on each version number.
 
 Remember that a new commit does not imply a new version.
+
+## Known Issues
+
+### Chromedriver not executable in Mac
+
+The program fails to use the chromedriver binary in Mac. This can happen just after downloading Chromedriver from the internet. Mac has a quarantine option that applies to downloaded files, and [you may need to remove this attribute](https://apple.stackexchange.com/questions/367364/cant-execute-binary-on-macos-catalina) from the file using:
+
+```
+xattr -d com.apple.quarantine <chromefile-binary>
+```
 
 ## Dependencies
 

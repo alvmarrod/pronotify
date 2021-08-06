@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added `darwin` to expected architectures to be executed in to adapt UI.
+- Added `darwin` to expected architectures to be executed in, so:
+  - UI adapts.
+  - `Chromedriver` file looked for is binary or `.exe`
 
 ### Changed
 

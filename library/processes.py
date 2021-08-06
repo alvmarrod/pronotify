@@ -2,6 +2,7 @@
 import time
 import logging
 import requests
+import platform
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -11,6 +12,15 @@ if "pronotify" in __name__:
     import pronotify.library.database as database
 else:
     import library.database as database
+
+#######################################################################
+
+platforms = {
+    "darwin": "./chromedriver/chromedriver",
+    "windows": "./chromedriver/chromedriver.exe"
+}
+PLATFORM = platform.system().lower()
+chromedriver_binary = platforms.get(PLATFORM, "./chromedriver/chromedriver")
 
 #######################################################################
 
@@ -38,13 +48,13 @@ def _get_web_through_chromedriver(url, chromium_path) -> BeautifulSoup:
 
     # start chrome browser
     driver = webdriver.Chrome(
-        executable_path="./chromedriver/chromedriver.exe",
+        executable_path=chromedriver_binary,
         chrome_options=chrome_options)
     driver.get(url)
     if "pccomponentes" in url.lower():
-        time.sleep(10)
+        time.sleep(5)
     else:
-        time.sleep(1)
+        time.sleep(2)
     soup = BeautifulSoup(driver.page_source.encode("utf-8"), "html.parser")
     driver.quit()
 
@@ -92,35 +102,21 @@ def _check_pccomp_product(url, chromium_path) -> (bool, float):
     available = False
     price = float(0)
 
-    logging.debug(f"PCComp article: {url}")
     soup = _get_web_through_chromedriver(url, chromium_path)
 
-    artcl_is = soup.find_all("div",{"id": "articleInStock"}, limit=1)[0]
-    artcl_is_style = artcl_is.get('style')
-    logging.debug(f"PCComp, article IS style: {artcl_is_style}")
+    from IPython import embed
+    embed()
 
-    artcl_oos = soup.find_all("div",{"id": "articleOutOfStock"}, limit=1)[0]
-    artcl_oos_style = artcl_oos.get('style')
-    logging.debug(f"PCComp, article OOS style: {artcl_oos_style}")
-    logging.debug(f"PCComp, article OOS Complete: {artcl_oos}")
-    
-    if "display:none;" in artcl_oos_style:
-        available = True
+    buy_button = soup.find_all("button",{"class": "js-article-buy"}, limit=1)
+    if len(buy_button) > 0:
+        buy_button = buy_button[0]
+        available = "comprar" in buy_button.string.lower()
+        logging.info(f"Availability: {buy_button.string.lower()}")
 
-    if "" == artcl_is_style:
-        available = True
-
-    main_price = soup.find_all("span",
-                    {"class": "baseprice"}, limit=1)[0].string
-    sup_price = soup.find_all("span",
-                    {"class": "cents"})[0].string
-
-    if sup_price:
-        sup_price = sup_price.replace(",", "")
-    else:
-        sup_price = 0
-
-    price = float(main_price) + float(sup_price)/100
+    full_price = soup.find_all("div", attrs={"class": "precioMain"}, limit=1)
+    if len(full_price) > 0:
+        full_price = full_price[0]
+        price = float(full_price['data-price'])
 
     return (available, price)
 
@@ -133,7 +129,6 @@ def _check_neobyte_product(url, chromium_path) -> (bool, float):
     available = False
     price = float(0)
 
-    logging.info(f"NeoByte article: {url}")
     soup = _get_web_through_chromedriver(url, chromium_path)
 
     dom_available = soup.find_all("span",{"id": "availability_value"}, limit=1)[0]
