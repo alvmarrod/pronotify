@@ -20,8 +20,13 @@ else:
 DB_NAME = "pronotify"
 POLL_SECONDS = 30
 
+platforms = {
+    "darwin": "clear",
+    "windows": "cls"
+}
+
 PLATFORM = platform.system().lower()
-CLEAN_CMD = "cls" if "win" in PLATFORM else "clear"
+CLEAN_CMD = platforms.get(PLATFORM, "clear")
 
 CHROMIUM_PATH = None
 
@@ -126,12 +131,11 @@ def _ask_back_to_menu() -> bool:
     result = False
 
     try:
-        
         option = input("Do you want to go back to menu? (Y/N): ")
-        
+
         if option.lower() == "y":
             result = True
-            
+
     except ValueError as e:
         print(f"Error! {e}")
 
@@ -203,7 +207,7 @@ def _menu_generation(db_conn) -> bool:
 
     if not _ask_back_to_menu():
         show_again = False
-    
+
     return show_again
 
 #######################################################################
@@ -276,7 +280,8 @@ def check_products(db_conn):
             processes.ProductLibrary.check_products(CHROMIUM_PATH)
 
             # Print it
-            os.system(CLEAN_CMD)
+            if not main.DEBUG:
+                os.system(CLEAN_CMD)
             print(emoji.emojize(
                     f"{etime} Last Update {dt.now()} {etime}",
                     use_aliases=True
