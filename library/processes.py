@@ -4,6 +4,9 @@ import logging
 import requests
 import platform
 
+from typing import Tuple
+from types import FunctionType
+
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -60,7 +63,7 @@ def _get_web_through_chromedriver(url, chromium_path) -> BeautifulSoup:
 
     return soup
 
-def _check_coolmod_product(url, chromium_path) -> (bool, float):
+def _check_coolmod_product(url, chromium_path) -> Tuple[bool, float]:
     """
     """
 
@@ -93,7 +96,7 @@ def _check_coolmod_product(url, chromium_path) -> (bool, float):
 
     return (available, price)
 
-def _check_pccomp_product(url, chromium_path) -> (bool, float):
+def _check_pccomp_product(url, chromium_path) -> Tuple[bool, float]:
     """
     Sample `chromium_path`:
     C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe
@@ -120,7 +123,7 @@ def _check_pccomp_product(url, chromium_path) -> (bool, float):
 
     return (available, price)
 
-def _check_neobyte_product(url, chromium_path) -> (bool, float):
+def _check_neobyte_product(url, chromium_path) -> Tuple[bool, float]:
     """
     Sample `chromium_path`:
     C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe
@@ -136,7 +139,13 @@ def _check_neobyte_product(url, chromium_path) -> (bool, float):
 
     dom_price = soup.find_all("span",
                     {"id": "our_price_display"}, limit=1)[0].string
-    price = float(dom_price.replace(" €", "").replace(",", "."))
+
+    # Order is important because of how they format the price
+    dom_price = dom_price.replace(" €", "")
+    dom_price = dom_price.replace(".", "")
+    dom_price = dom_price.replace(",", ".")
+
+    price = float(dom_price)
 
     return (available, price)
 
@@ -197,6 +206,15 @@ class ProductLibrary:
         docstring
         """
 
+        def run_check(check_function: FunctionType , product) -> Tuple[bool, float]:
+            availability, price = False, -1
+            try:
+                availability, price = check_function(product, chromium_path)
+            except Exception as e:
+                logging.warning(str(e))
+
+            return availability, price
+
         for group in ProductLibrary.products:
 
             logging.info(f"Group {group}")
@@ -208,17 +226,17 @@ class ProductLibrary:
                 if "coolmod" in product.lower():
 
                     ProductLibrary.products[group][product] = \
-                        _check_coolmod_product(product, chromium_path)
+                        run_check(_check_coolmod_product, product)
 
                 elif "pccomponentes" in product.lower():
 
                     ProductLibrary.products[group][product] = \
-                        _check_pccomp_product(product, chromium_path)
+                        run_check(_check_pccomp_product, product)
 
                 elif "neobyte" in product.lower():
 
                     ProductLibrary.products[group][product] = \
-                        _check_neobyte_product(product, chromium_path)
+                        run_check(_check_neobyte_product, product)
 
                 else:
 
