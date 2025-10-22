@@ -6,7 +6,7 @@ This project aims to monitor required products from different webpages, and show
 
 Execute the main script to access the app main menu and start working from there.
 
-```
+```bash
 $ python main.py
 
 ############## pronotify ##############
@@ -26,13 +26,15 @@ There are some vendors that require the usage of a web browser to renderize seve
 By default, as web browser it will be used Chrome, but if you don't have Chrome web browser installed, you can target a different **Chromium web browser** to be used.
 
 - Windows
-```
-$ python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
+
+```bash
+python main.py --chromium "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe"
 ```
 
 - Mac
-```
-$ python main.py --chromium "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+
+```bash
+python main.py --chromium "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 
 ## Supported vendors
@@ -40,6 +42,8 @@ $ python main.py --chromium "/Applications/Brave Browser.app/Contents/MacOS/Brav
 - [Coolmod](http://coolmod.com/) - Spanish language
 - [PCComponentes](https://www.pccomponentes.com/) - All languages - Requires ChromeDriver!
 - [NeoByte](https://www.neobyte.es/) - Spanish (Unique available)
+- [pc-koubou](https://pc-koubou.jp) - Japanese (Unique available)
+  - Example: [RTX 5070](https://www.pc-koubou.jp/products/detail.php?product_id=1151863)
 
 ## Versions
 
@@ -53,7 +57,7 @@ Remember that a new commit does not imply a new version.
 
 The program fails to use the chromedriver binary in Mac. This can happen just after downloading Chromedriver from the internet. Mac has a quarantine option that applies to downloaded files, and [you may need to remove this attribute](https://apple.stackexchange.com/questions/367364/cant-execute-binary-on-macos-catalina) from the file using:
 
-```
+```bash
 xattr -d com.apple.quarantine <chromefile-binary>
 ```
 
@@ -66,7 +70,7 @@ xattr -d com.apple.quarantine <chromefile-binary>
 
 To install all these requirements, you can execute:
 
-```
+```bash
 python -m pip install -r requirements.txt
 ```
 
@@ -77,4 +81,3 @@ Some webpages need to renderize further HTML Changes by JavaScript actions befor
 Our choice is [ChromeDriver](https://sites.google.com/a/chromium.org/chromedriver/getting-started), that should be installed beforehand in your computer.
 
 You should install the appropriate chromedriver from their [downloads section](https://sites.google.com/a/chromium.org/chromedriver/downloads).
-

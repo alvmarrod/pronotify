@@ -1,9 +1,10 @@
-# -*- coding: utf-8 -*-
 import os
 import time
 import emoji
+import sqlite3
 import logging
 import platform
+from typing import Optional, Callable, TypedDict
 
 from urllib.parse import urlparse, uses_relative
 from datetime import datetime as dt
@@ -13,33 +14,37 @@ import library.database as db
 import library.processes as processes
 
 if "pronotify" in __name__:
-    import pronotify.main as main
+    import pronotify.main as main # type: ignore
 else:
     import main as main
 
-DB_NAME = "pronotify"
-POLL_SECONDS = 30
+DB_NAME: str = "pronotify"
+POLL_SECONDS: int = 30
 
-platforms = {
+platforms: dict[str, str] = {
     "darwin": "clear",
     "windows": "cls"
 }
 
-PLATFORM = platform.system().lower()
-CLEAN_CMD = platforms.get(PLATFORM, "clear")
+PLATFORM: str = platform.system().lower()
+CLEAN_CMD: str = platforms.get(PLATFORM, "clear")
 
-CHROMIUM_PATH = None
+CHROMIUM_PATH: Optional[str] = None
 
-def _ask_bool_user(msg, default=False) -> bool:
+class MenuOption(TypedDict):
+    text: str
+    function: Callable[[sqlite3.Connection], None]
+
+def _ask_bool_user(msg: str, default:bool = False) -> bool:
     """Ask anything to the user and returns a boolean.
 
     If the pattern is not followed, returns false.
     """
+    result: bool = default
 
-    result = default
     try:
         
-        option = input(f"{msg} (Y/N): ")
+        option: str = input(f"{msg} (Y/N): ")
         if option.lower() == "y":
             result = True
         elif option.lower() == "n":
@@ -50,24 +55,23 @@ def _ask_bool_user(msg, default=False) -> bool:
 
     return result
 
-def _ask_str_user(msg, default="") -> str:
+def _ask_str_user(msg: str, default: str = "") -> str:
     """Ask anything to the user and returns the answer
     """
 
-    result = input(f"{msg}: ")
+    result: str = input(f"{msg}: ")
     if len(result) == 0:
         result = default
 
     return result
 
-def _ask_int_user(msg, default=0) -> int:
+def _ask_int_user(msg: str, default: int = 0) -> int:
     """Ask anything to the user and returns an int.
     """
+    result: int = default
 
-    result = default
     try:
-        
-        option = input(f"{msg}: ")
+        option: str  = input(f"{msg}: ")
         result = int(option)
             
     except ValueError as e:
@@ -75,63 +79,13 @@ def _ask_int_user(msg, default=0) -> int:
 
     return result
 
-def _ask_loop(asktype, msg, default_value, failcheck, checkparameters=None):
-    """Handles asking to the user several times until the desired value
-    to be used is agreed.
-
-    A fail check function can be provided to run over the given result,
-    which will be passed as parameter to it. A tuple with parameters can
-    be provided to feed that function, where the result from the input
-    will be appended.
-    
-    If the failcheck returns `true`, it will trigger a rollback to the
-    `default_value` given.
-    """
-
-    result = None
-    again = True
-    function = None
-
-    if "str" == asktype.lower():
-        function = _ask_str_user
-    elif "bool" == asktype.lower():
-        function = _ask_bool_user
-    elif "int" == asktype.lower():
-        function = _ask_int_user
-
-    if function:
-
-        while again == True:
-
-            result = function(msg, default=default_value)
-
-            parameters = (*checkparameters, result)
-            #from IPython import embed
-            #embed()
-            if failcheck(*parameters):
-
-                result = default_value
-                print(f"Error! {parameters[-1]} value is not correct." + \
-                        " Rolling back...")
-
-            else:
-                
-                if result != default_value:
-                    ask_again = f"Input given is \"{result}\", do you agree?"
-                    again = _ask_bool_user(ask_again)
-                else:
-                    again = False
-
-    return result
-
 def _ask_back_to_menu() -> bool:
     """Checks if the user wants to go back to the menu
     """
-
-    result = False
+    result: bool = False
 
     try:
-        option = input("Do you want to go back to menu? (Y/N): ")
+        option: str = input("Do you want to go back to menu? (Y/N): ")
 
         if option.lower() == "y":
             result = True
@@ -141,16 +95,19 @@ def _ask_back_to_menu() -> bool:
 
     return result
 
-def _menu_generation(db_conn) -> bool:
+def _exit_program(db_conn: sqlite3.Connection) -> None:
+    """Exit the program gracefully."""
+    print("Goodbye!")
+
+def generate_menu(db_conn: sqlite3.Connection) -> bool:
     """Generates the menu options. If returns false means the
     menu should be finished.
 
     Receives the database connection as parameter.
     """
+    show_again: bool = False
 
-    show_again = False
-
-    options = {
+    options: dict[int, MenuOption] = {
         1: {
             "text": "Add product",
             "function": add_product
@@ -165,7 +122,7 @@ def _menu_generation(db_conn) -> bool:
         },
         4: {
             "text": "Exit",
-            "function": exit
+            "function": _exit_program
         }
     }
 
@@ -189,7 +146,7 @@ def _menu_generation(db_conn) -> bool:
 
     try:
 
-        option = int(input("Choose an option: "))
+        option: int = int(input("Choose an option: "))
 
         if option <= 0 or option > len(options):
             raise ValueError("Option number not recognised")
@@ -202,8 +159,7 @@ def _menu_generation(db_conn) -> bool:
             raise ValueError(f"Option {option} is not available!")
 
     except ValueError as e:
-
-        print(f"Error! {e}\n")
+        logging.error(f"{e}\n")
 
     if not _ask_back_to_menu():
         show_again = False
@@ -212,26 +168,26 @@ def _menu_generation(db_conn) -> bool:
 
 #######################################################################
 
-def load_product(product):
+def load_product(product: tuple) -> None:
+    """Loads a product from the DB into memory.
     """
-    """
+    #product_id: int = product[0]
+    product_url: str = product[1]
+    product_group: str = product[2]
 
-    # 0 is ID, then URL then GROUP
-    product_url = product[1]
-    product_group = product[2]
     if not processes.ProductLibrary.add_product(product_url, product_group):
         logging.warning(f"Failed to load product {product} into memory...")
 
 #######################################################################
 
-def add_product(db_conn):
-    """
+def add_product(db_conn: sqlite3.Connection) -> None:
+    """Adds a product to the memory and to the DB.
     """
 
-    product_url = _ask_str_user("Please, insert URL to the product")
+    product_url: str = _ask_str_user("Please, insert URL to the product")
     logging.debug(f"Product URL: {product_url}")
 
-    product_group = _ask_str_user("Specify a group if desired", "")
+    product_group: str = _ask_str_user("Specify a group if desired", "")
     logging.debug(f"Product Group: {product_group}")
 
     if not processes.ProductLibrary.add_product(product_url, product_group):
@@ -241,17 +197,16 @@ def add_product(db_conn):
     else:
         print(f"Product added successfully :)")
 
-
 #######################################################################
 
-def del_product(db_conn):
-    """
+def del_product(db_conn: sqlite3.Connection):
+    """Deletes a product from memory and from the DB.
     """
 
-    product_url = _ask_str_user("Please, insert URL to remove")
+    product_url: str = _ask_str_user("Please, insert URL to remove")
     logging.debug(f"Product URL: {product_url}")
 
-    product_group = _ask_str_user("Specify a group where it belongs", "")
+    product_group: str = _ask_str_user("Specify a group where it belongs", "")
     logging.debug(f"Product Group: {product_group}")
 
     if not processes.ProductLibrary.del_product(product_url, product_group):
@@ -263,38 +218,30 @@ def del_product(db_conn):
 
 #######################################################################
 
-def check_products(db_conn):
+def check_products(db_conn: sqlite3.Connection) -> None:
     """
+    Checks the products in memory and shows their status.
 
     db_conn parameters is not used, but is defined to avoid more complex
     parameters management in main function menu.
     """
-
-    check = True
+    check: bool = True
 
     while check:
-
         try:
-
             # Update data
+            assert CHROMIUM_PATH is not None, "Chromium path is not set!"
             processes.ProductLibrary.check_products(CHROMIUM_PATH)
 
-            # Print it
             if not main.DEBUG:
                 os.system(CLEAN_CMD)
-            print(emoji.emojize(
-                    f"{etime} Last Update {dt.now()} {etime}",
-                    use_aliases=True
-                )
+            print(emoji.emojize(f"{ETIME} Last Update {dt.now()} {ETIME}")
             )
             print("")
 
             for group in processes.ProductLibrary.products:
 
-                print(emoji.emojize(
-                        f"{egroup} {group} {egroup}",
-                        use_aliases=True
-                    )
+                print(emoji.emojize(f"{EGROUP} {group} {EGROUP}")
                 )
                 print("")
 
@@ -307,16 +254,16 @@ def check_products(db_conn):
                             processes.ProductLibrary.products[group][product]
                     except Exception as e:
                         logging.warning(f"Error: {e}")
+                        availability = False
+                        price = -1
 
                     print(f"Product URL: {product}")
 
                     if availability:
-                        availability = evalid
+                        availability = EVALID
                     else:
-                        availability = ecross
-                    print(emoji.emojize(
-                        f"Availability: {availability} - Price: {price}€",
-                        use_aliases=True))
+                        availability = ECROSS
+                    print(emoji.emojize(f"Availability: {availability} - Price: {price}€"))
 
                 print("")
 
@@ -330,24 +277,30 @@ def check_products(db_conn):
 
 #######################################################################
 
-def menu():
+def menu() -> None:
     """Generates and controls the menu for the app.
     """
 
     db_conn = db.open_database(DB_NAME)
+    if not db_conn:
+        logging.error("Database connection could not be established!")
+        return
 
     # Database setup
     print(f"1. Checking and creating products table in DB...")
     db._create_products_table(db_conn)
+
     print(f"2. Loading database into memory...")
     products = db.read_products(db_conn)
-    for item in products:
-        load_product(item)
+
+    if products:
+        for item in products:
+            load_product(item)
 
     # Menu
-    generate = _menu_generation(db_conn)
+    generate = generate_menu(db_conn)
 
     while generate:
-        generate = _menu_generation(db_conn)
+        generate = generate_menu(db_conn)
 
     db.close_database(db_conn)

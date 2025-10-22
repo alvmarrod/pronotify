@@ -1,19 +1,24 @@
-# -*- coding: utf-8 -*-
 import logging
 import sqlite3
 
+from typing import Optional
+
 #######################################################################
 
-def _create_products_table(con):
+def _create_products_table(con: sqlite3.Connection):
     """Creates the table for consolidated data.
+    If the table already exists, then nothing is done.
     """
 
-    tb_exists = "SELECT name FROM sqlite_master WHERE type='table' " + \
-                "AND name='products'"
+    tb_exists: str = (
+        "SELECT name FROM sqlite_master "
+        "WHERE type='table' "
+        "AND name='products'"
+    )
 
     if not con.execute(tb_exists).fetchone():
 
-        logging.info("Table products not detected!")
+        logging.info("Table 'products' not detected!")
 
         con.execute('''CREATE TABLE products
             (ID INTEGER PRIMARY KEY,
@@ -21,25 +26,24 @@ def _create_products_table(con):
             PRODUCT_GROUP  TEXT    NOT NULL,
             TIMESTAMP      DATETIME DEFAULT CURRENT_TIMESTAMP);''')
 
-        logging.info("Table products created!")
+        logging.info("Table 'products' created!")
 
 #######################################################################
 
-def _execute_non_reader_query(con, query) -> int:
-    """Execute a non-reader query that returns a `int` value indicating
+def _execute_non_reader_query(con: sqlite3.Connection, query: str) -> int:
+    """Execute a non-reader query that returns an `int` value indicating
     if the execution was successful.
 
     If the command executed was an `update`, then the returned value
     indicates the number of rows that have been updated.
     """
-
-    result = 1
+    result: int = 1
 
     try:
 
         con.execute(query)
 
-        commit_commands = [
+        commit_commands: list[str] = [
             "insert",
             "update",
             "delete"
@@ -58,20 +62,19 @@ def _execute_non_reader_query(con, query) -> int:
 
     return result
 
-def _execute_reader_query(con, query) -> tuple:
+def _execute_reader_query(con: sqlite3.Connection, query: str) -> list:
     """Execute a reader query that returns a `list` with the query
     response.
     """
-
-    cursor = con.execute(query)
-    rows = cursor.fetchall()
+    cursor: sqlite3.Cursor = con.execute(query)
+    rows: list = cursor.fetchall()
 
     return rows
 
 
 #######################################################################
 
-def open_database(db_file) -> sqlite3.Connection:
+def open_database(db_file: str) -> Optional[sqlite3.Connection]:
     """Open the specified file as a sqlite3 database file.
 
     Parameters:
@@ -80,23 +83,21 @@ def open_database(db_file) -> sqlite3.Connection:
     Returns:
     - A `sqlite3.Connection` with the connection for the database
     """
-
-    filepath = f"./data/{db_file}.db"
-    con = None
+    filepath: str = f"./data/{db_file}.db"
+    con: Optional[sqlite3.Connection] = None
 
     try:
         con = sqlite3.connect(filepath)
         _create_products_table(con)
 
     except Exception as e:
-
         logging.warning("Couldn't connect to the specified database" + \
                         f" \"{db_file}\"")
         logging.info(e)
 
     return con
 
-def insert_product(con, data_tuple) -> bool:
+def insert_product(con: sqlite3.Connection, data_tuple: tuple) -> bool:
     """Inserts the given data tuple into the products table.
 
     Parameters:
@@ -105,8 +106,7 @@ def insert_product(con, data_tuple) -> bool:
     Returns:
     - A `bool` indicating if the insertion was accomplished (true)
     """
-
-    result = True
+    result: bool = True
 
     if len(data_tuple) != 2:
         result = False
@@ -119,7 +119,7 @@ def insert_product(con, data_tuple) -> bool:
 
     return result
 
-def remove_product(con, data_tuple) -> bool:
+def remove_product(con: sqlite3.Connection, data_tuple: tuple) -> bool:
     """Removes the given data tuple into the products table.
 
     Parameters:
@@ -128,8 +128,7 @@ def remove_product(con, data_tuple) -> bool:
     Returns:
     - A `bool` indicating if the removal was accomplished (true)
     """
-
-    result = True
+    result: bool = True
 
     if len(data_tuple) != 2:
         result = False
@@ -142,15 +141,16 @@ def remove_product(con, data_tuple) -> bool:
 
     return result
 
-def read_products_by_group(con, group) -> tuple:
+def read_products_by_group(con: sqlite3.Connection, group: str) -> Optional[list]:
     """Queries the products table by group.
     """
+    result: Optional[list] = None
 
-    query = "SELECT ID, URL, PRODUCT_GROUP " + \
-            " FROM products" + \
-            f" WHERE PRODUCT_GROUP=\"{group}\""
-
-    result = None
+    query:str = (
+        "SELECT ID, URL, PRODUCT_GROUP "
+        " FROM products"
+        f" WHERE PRODUCT_GROUP=\"{group}\""
+    )
 
     try:
         result = _execute_reader_query(con, query)
@@ -161,15 +161,16 @@ def read_products_by_group(con, group) -> tuple:
 
     return result
 
-def read_products_by_vendor(con, vendor) -> tuple:
+def read_products_by_vendor(con: sqlite3.Connection, vendor: str) -> Optional[list]:
     """Queries the products table by vendor, that should be present in the URL.
     """
+    result: Optional[list] = None
 
-    query = "SELECT ID, URL, PRODUCT_GROUP " + \
-            " FROM products" + \
-            f" WHERE LOCATE({vendor.lower()}, URL) > 0"
-
-    result = None
+    query = (
+        "SELECT ID, URL, PRODUCT_GROUP "
+        " FROM products"
+        f" WHERE LOCATE({vendor.lower()}, URL) > 0"
+    )
 
     try:
         result = _execute_reader_query(con, query)
@@ -180,15 +181,16 @@ def read_products_by_vendor(con, vendor) -> tuple:
 
     return result
 
-def read_products(con) -> tuple:
+def read_products(con: sqlite3.Connection) -> Optional[list]:
     """Queries the products table and retrieves the products,
     ordered by insertion time.
     """
+    result: Optional[list] = None
 
-    query = "SELECT ID, URL, PRODUCT_GROUP " + \
-            " FROM products"
-
-    result = None
+    query = (
+        "SELECT ID, URL, PRODUCT_GROUP " + \
+        " FROM products"
+    )
 
     try:
         result = _execute_reader_query(con, query)
@@ -199,18 +201,13 @@ def read_products(con) -> tuple:
 
     return result
 
-def close_database(con):
+def close_database(con: sqlite3.Connection):
     """Close the given database connection
-
-    Parameters:
-    - A `sqlite3.Connection` to be closed
     """
-
     try:
         con.close()
 
     except Exception as e:
-
         logging.warning("Couldn't close the specified database" + \
                         " \"{db_file}\"")
         logging.info(e)

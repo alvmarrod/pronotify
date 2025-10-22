@@ -1,6 +1,6 @@
 
-etime = ":alarm_clock:"
-egroup = ":bell:"
+ETIME: str = ":alarm_clock:"
+EGROUP: str = ":bell:"
 
-ecross = ":x:"
-evalid = ":white_check_mark:"
+ECROSS: str = ":cross_mark:"
+EVALID: str = ":check_mark_button:"

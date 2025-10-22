@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import argparse
 
@@ -6,10 +5,11 @@ import library.UI as UI
 
 #######################################################################
 
-logging.basicConfig(level=logging.WARNING,
-                    format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(name)s - %(levelname)s - %(funcName)s - %(message)s',
+                    filename='pronotify.log',)
 
-DEBUG=False
+DEBUG: bool = False
 
 #######################################################################
 
